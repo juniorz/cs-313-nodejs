@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <style type="text/css">
+    #template {
+      display: none;
+    }
+  </style>
+  <title>Family Budget</title>
+</head>
+<body>
+
+  <div class="container">
+    <div class="row">
+      <h1>Transactions</h1>
+    </div>
+
+      <form id="transactionForm" method="POST" action="/transactions">
+          <div class="form-group mb-2">
+              <label for="amount">Amount</label>
+              <input type="text" name="amount" value="" class="form-control" id="amount" aria-describedby="amountHelp" placeholder="How much did you spend?">
+              <small id="amountHelp" class="form-text text-muted">in USD</small>  
+          </div>
+          <div class="form-group mb-2">
+              <label for="date">Date</label>
+              <input type="text" name="date" value="" class="form-control" id="date" aria-describedby="dateHelp" placeholder="When?">
+              <small id="dateHelp" class="form-text text-muted">DD/MM/YYYY</small>  
+            </div>
+          <div class="form-group mb-2">
+            <label for="category">Category</label>
+            <select class="form-control" id="category" name="category_id">
+            <% categories.forEach(function(category) { %>
+              <option value="<%= category.id %>"><%= category.name %></option>
+            <% }); %>
+            </select>
+          </div>
+          <div class="form-group mb-2">
+              <label for="description">Description</label>
+              <input type="text" name="description" value="" class="form-control" id="description" placeholder="">
+          </div>
+
+          <button type="submit" class="btn btn-primary mb-2">Add</button>
+      </form>
+
+    <div class="row">
+      <table id="transaction-list" class="table">
+        <thead>
+            <tr>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th colspan="2"></th>
+            </tr>
+          </thead>
+          <tbody>
+          <tr id="template">
+            <td data-template-attr="amount"></td>
+            <td data-template-attr="date"></td>
+            <td data-template-attr="category_name"></td>
+            <td data-template-attr="description"></td>
+            <td>
+              <a data-template-attr="edit-action" href="#">Edit</a>
+            </td>
+            <td>
+              <input data-template-attr="delete-action" type="submit" value="Delete" />
+            </td>
+          </tr>
+          </tbody>
+      </table>
+    </div>
+
+  </div>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+  <script type="text/javascript">
+    "use strict";
+
+    const $transctionsTable = $("#transaction-list");
+
+    let toTransactionRow = ($tpl, t) => {      
+      const $el = $tpl.clone().removeAttr("id");
+
+      Object.keys(t).forEach(function(k, v) {
+        $el.find(`[data-template-attr='${k}']`).html(t[k]);
+      });
+
+      //TODO: actions
+
+      //Set id (to be used by actions)
+      $el.data('id', t.id);
+
+      return $el;
+    };
+
+    let addTransactions = (ts) => {
+      if (ts.length == 0) {
+        return;
+      }
+
+      const $tpl = $transctionsTable.find("#template");
+      let toRow = (t) => { return toTransactionRow($tpl, t); };
+
+      $transctionsTable.find("tbody").append(ts.map(toRow));
+    };
+
+    $(document).ready(function(){
+      // Load transactions
+      $.get('/transactions.json')
+        .done(function(data) {
+          console.log("done", data);
+          addTransactions(data.transactions);
+        })
+        .fail(function(data) {
+          //TODO: Improve error message using bootstrap
+          alert("Error inserting transaction");
+          console.log("fail", data);
+        })
+        .always(function(data) {
+          // console.log("always", data);
+        });
+
+      $( "#transactionForm" ).submit(function( event ) {
+        event.preventDefault();
+
+        //TODO: validate
+
+        let $form = $(this);
+        $.post($form.attr('action'), $form.serialize())
+          .done(function(data) {
+            console.log("done", data);
+            $form.trigger("reset");
+            addTransactions([data.transaction]);
+          })
+          .fail(function(data) {
+            //TODO: Improve error message using bootstrap
+            alert("Error inserting transaction");
+            console.log("fail", data);
+          })
+          .always(function(data) {
+            // nothing
+          });
+      });
+    })
+  </script>
+</body>
+</html>

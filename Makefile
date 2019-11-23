@@ -1,6 +1,6 @@
 deploy:
-    git push heroku master
+	git push heroku master
 
 
 intall:
-    npm install
+	npm install
