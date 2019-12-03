@@ -64,6 +64,16 @@ let getTransactions = async () => {
     return rows;
 };
 
+let deleteTransaction = (id) => {
+  const q = `
+  DELETE
+  FROM transactions t
+  WHERE id = $1
+    AND family_id = $2
+  `;
+
+  return pool.query(q, [id, familyId]);
+};
 
 let getCategories = async () => {
     let q = `
@@ -90,6 +100,7 @@ module.exports = {
         get: getTransaction,
         insert: insertTransaction,
         all: getTransactions,
+        del: deleteTransaction,
     },
     Categories: {
         all: getCategories,

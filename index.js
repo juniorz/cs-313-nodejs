@@ -27,6 +27,17 @@ let manageTransactions = async (req, res) => {
   }
 };
 
+let deleteTransaction = async (req, res) => {
+  try {
+    console.log("Deleting transaction", req.params.id);
+    await Transaction.del(req.params.id);
+    res.status(201).end();
+  }
+  catch (e) {
+    res.status(500).json({error: e.error});
+  }
+};
+
 let listTransactions = async (req, res) => {
   try {
     let [categories, transactions] = await Promise.all([
@@ -70,5 +81,6 @@ express()
   .get('/', listTransactions)
   .get('/transactions.json', getTransactions)
   .post('/transactions', manageTransactions)
+  .delete('/transactions/:id', deleteTransaction)
 
   .listen(PORT, () => console.log(`Listening on ${ PORT }`));

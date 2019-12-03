@@ -113,6 +113,32 @@
     };
 
     $(document).ready(function(){
+      // Bind
+      $("#transaction-list").on("click", "[data-template-attr='delete-action']", (event) => {
+        event.preventDefault();
+
+        // Get the ID
+        const $tr = $(event.target).parents("tr");
+        const id = $tr.data('id');
+
+        // Ask for confirmation
+        if (!window.confirm("Are you sure?")) {
+          return;
+        }
+
+        // Use DELETE method
+        $.ajax({
+          url: '/transactions/' + id,
+          type: 'DELETE',
+        })
+          .done((data, textStatus) => {
+            $tr.hide($tr.remove);
+          })
+          .fail((data, textStatus) => {
+            console.log("failed", textStatus);
+          });
+      });
+
       // Load transactions
       $.get('/transactions.json')
         .done(function(data) {
