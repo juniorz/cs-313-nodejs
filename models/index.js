@@ -43,7 +43,33 @@ let insertTransaction = async (values) => {
     // Return the inserted object id
     return rows[0];
 };
-  
+
+let updateTransaction = async (id, values) => {
+  let q = `
+  UPDATE transactions
+  SET amount = $1,
+      date = $2,
+      category_id = $3,
+      description = $4
+  WHERE id = $5
+        AND user_id = $6
+        AND family_id = $7
+  `;
+
+  const {rows} = await pool.query(q, [
+      values.amount,
+      values.date,
+      values.category_id,
+      values.description,
+      id,
+      userId,
+      familyId,
+  ]);
+
+  // Return the inserted object id
+  return rows;
+};
+
 let getTransactions = async () => {
     let q = `
     SELECT t.*, u.name as user_name, c.name as category_name
@@ -99,6 +125,7 @@ module.exports = {
     Transaction: {
         get: getTransaction,
         insert: insertTransaction,
+        update: updateTransaction,
         all: getTransactions,
         del: deleteTransaction,
     },

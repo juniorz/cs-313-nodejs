@@ -45,7 +45,14 @@
               <input type="text" name="description" value="" class="form-control" id="description" placeholder="">
           </div>
 
-          <button type="submit" class="btn btn-primary mb-2">Add</button>
+          <div id="create-actions">
+             <button type="button" class="btn btn-primary mb-2">Add</button>
+          </div>
+          <div id="edit-actions" style="display: none;">
+            <input type="hidden" id="id" name="id" value="" />
+            <button type="reset" class="btn btn-secondary mb-2">Cancel</button>
+            <button type="button" class="btn btn-primary mb-2">Update</button>
+         </div>
       </form>
 
     <div class="row">
@@ -112,34 +119,64 @@
       $transctionsTable.find("tbody").append(ts.map(toRow));
     };
 
-    $(document).ready(function(){
-      // Bind
-      $("#transaction-list").on("click", "[data-template-attr='delete-action']", (event) => {
-        event.preventDefault();
+    let deleteTransaction = (event) => {
+      event.preventDefault();
 
-        // Get the ID
-        const $tr = $(event.target).parents("tr");
-        const id = $tr.data('id');
+      // Get the ID
+      const $tr = $(event.target).parents("tr");
+      const id = $tr.data('id');
 
-        // Ask for confirmation
-        if (!window.confirm("Are you sure?")) {
-          return;
-        }
+      // Ask for confirmation
+      if (!window.confirm("Are you sure?")) {
+        return;
+      }
 
-        // Use DELETE method
-        $.ajax({
-          url: '/transactions/' + id,
-          type: 'DELETE',
+      // Use DELETE method
+      $.ajax({
+        url: '/transactions/' + id,
+        type: 'DELETE',
+      })
+        .done((data, textStatus) => {
+          $tr.hide($tr.remove);
         })
-          .done((data, textStatus) => {
-            $tr.hide($tr.remove);
-          })
-          .fail((data, textStatus) => {
-            console.log("failed", textStatus);
-          });
-      });
+        .fail((data, textStatus) => {
+          console.log("failed", textStatus);
+        });
+    };
 
-      // Load transactions
+    let loadDataInForm = (data, textStatus) => {
+      const d = new Date(Date.parse(data.transaction.date));
+      $("#transactionForm #amount").val(data.transaction.amount.replace(/[$,]+/g,""));
+      $("#transactionForm #date").val(d.getUTCDate() + "/" + (d.getUTCMonth()+1) + "/" + d.getUTCFullYear());
+      $("#transactionForm #description").val(data.transaction.description);
+      $("#transactionForm #category").val(data.transaction.category_id);
+      $("#transactionForm #id").val(data.transaction.id);
+
+      // Change the button to update the form
+      $("#transactionForm #create-actions").hide();
+      $("#transactionForm #edit-actions").show();
+    };
+
+    let editTransaction = (event) => {
+      event.preventDefault();
+
+      // Get the ID
+      const $tr = $(event.target).parents("tr");
+      const id = $tr.data('id');
+
+      $.ajax({
+        url: '/transactions/' + id,
+        type: 'GET',
+      })
+        .done(loadDataInForm)
+        .fail((data, textStatus) => {
+          console.log("failed", textStatus);
+        });
+    };
+
+    let loadTransactions = () => {
+      $transctionsTable.find("tbody tr").not("#template").remove();
+
       $.get('/transactions.json')
         .done(function(data) {
           console.log("done", data);
@@ -153,18 +190,60 @@
         .always(function(data) {
           // console.log("always", data);
         });
+    };
 
-      $( "#transactionForm" ).submit(function( event ) {
+    $(document).ready(function(){
+      // Bind
+      $("#transaction-list")
+        .on("click", "[data-template-attr='delete-action']", deleteTransaction)
+        .on("click", "[data-template-attr='edit-action']", editTransaction);
+
+      // Load transactions
+      loadTransactions();
+
+      $("#transactionForm #create-actions button").click(function(event) {
         event.preventDefault();
 
         //TODO: validate
 
-        let $form = $(this);
+        let $form = $(this).parents("form");
         $.post($form.attr('action'), $form.serialize())
           .done(function(data) {
-            console.log("done", data);
+            console.log("done inserting", data);
             $form.trigger("reset");
             addTransactions([data.transaction]);
+          })
+          .fail(function(data) {
+            //TODO: Improve error message using bootstrap
+            alert("Error inserting transaction");
+            console.log("fail", data);
+          })
+          .always(function(data) {
+            // nothing
+          });
+      });
+
+      $("#transactionForm #edit-actions button[type=reset]").click(function(event) {
+        $("#transactionForm #id").val("")
+        $("#transactionForm #create-actions").show();
+        $("#transactionForm #edit-actions").hide();
+      });
+
+      $("#transactionForm #edit-actions button[type=button]").click(function(event) {
+        event.preventDefault();
+
+        //TODO: validate
+
+        let $form = $(this).parents("form");
+        $.post($form.attr('action') + "/" + $("#transactionForm #id").val(), $form.serialize())
+          .done(function(data) {
+            console.log("done updating", data);
+
+            $form.trigger("reset");
+            $("#transactionForm #create-actions").show();
+            $("#transactionForm #edit-actions").hide();
+
+            loadTransactions();
           })
           .fail(function(data) {
             //TODO: Improve error message using bootstrap
